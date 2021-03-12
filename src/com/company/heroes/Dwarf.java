@@ -4,6 +4,7 @@ import com.company.tiles.BattleFieldTile;
 import com.company.tiles.Tile;
 
 import java.awt.*;
+import java.util.Random;
 
 import static com.company.globalConstants.Constants.DWARF;
 
@@ -13,13 +14,13 @@ public class Dwarf extends Hero {
 
     private final int ATTACK = 6;
     private int ARMOR = 2;
-    private int health = 12;
+    private int health = 1;
     private final int MOVABLE_TILES = 2;
 
     @Override
     public void render(Graphics g, int x, int y) {
         g.setFont(new Font("Serif", Font.PLAIN, 30));
-        g.setColor(new Color(141, 83, 255));
+        g.setColor(new Color(110, 42, 255));
         g.drawString("Dw", x + 27, y + 55);
     }
 
@@ -124,12 +125,63 @@ public class Dwarf extends Hero {
 
     @Override
     public boolean isAttackPossible(Tile[][] board, int wantedRow, int wantedCol) {
-        return false;
+        if (Math.abs(wantedRow - getCurrentRow()) > 2 || Math.abs(wantedCol - getCurrentCol()) > 2) {
+            return false;
+        }
+        if (wantedCol != getCurrentCol() && wantedRow != getCurrentRow()) {
+            return false;
+        }
+        if (getCurrentRow() > wantedRow) {
+            if (getCurrentRow() - wantedRow > 1) {
+                if (board[getCurrentRow() + 1][wantedCol] instanceof Hero) {
+                    return false;
+                }
+            }
+            return board[wantedRow][wantedCol] instanceof Hero;
+        } else if (getCurrentRow() < wantedRow) {
+            if (wantedRow - getCurrentRow() > 1) {
+                if (board[getCurrentRow() - 1][wantedCol] instanceof Hero) {
+                    return false;
+                }
+            }
+            return board[wantedRow][wantedCol] instanceof Hero;
+        }else if (getCurrentCol() < wantedCol) {
+            if (wantedCol - getCurrentCol() > 1) {
+                if (board[wantedRow][getCurrentCol() + 1] instanceof Hero) {
+                    return false;
+                }
+            }
+            return board[wantedRow][wantedCol] instanceof Hero;
+        } else {
+            if (getCurrentCol() - wantedCol > 1) {
+                if (board[wantedRow][getCurrentCol() - 1] instanceof Hero) {
+                    return false;
+                }
+            }
+            return board[wantedRow][wantedCol] instanceof Hero;
+        }
     }
 
     @Override
     public int attack(Tile[][] board, int wantedRow, int wantedCol) {
-        return 0;
+        Random random = new Random();
+        int dice1 = random.nextInt(6) + 1;
+        int dice2 = random.nextInt(6) + 1;
+        int dice3 = random.nextInt(6) + 1;
+
+        int sum = dice1 + dice2 + dice3;
+
+        Hero attackedHero = (Hero) board[wantedRow][wantedCol];
+
+        int damage = getAttack() - attackedHero.getArmor();
+
+        if (sum == attackedHero.getHealth()) {
+            damage = 0;
+        } else if (sum == 3) {
+            damage /= 2;
+        }
+        attackedHero.setHealth(attackedHero.getHealth() - damage);
+        return damage;
     }
 
     private boolean isWantedPositionPossible(Tile[][] board, int currentRowOfHero, int currentColOfHero) {

@@ -14,22 +14,20 @@ import static com.company.globalConstants.Constants.*;
 public class Player {
     private HashMap<String, Integer> heroesForPlacing;
     private List<Hero> army;
+    private int points;
 
     public Player() {
         heroesForPlacing = new HashMap<>();
         army = new ArrayList<>();
+
+        points = 0;
 
         setHeroes();
         setArmy();
     }
 
     private void setArmy() {
-        army.add(new Knight());
-        army.add(new Knight());
-        army.add(new Elf());
-        army.add(new Elf());
-        army.add(new Dwarf());
-        army.add(new Dwarf());
+
     }
 
     private void setHeroes() {
@@ -44,5 +42,13 @@ public class Player {
 
     public List<Hero> getArmy() {
         return army;
+    }
+
+    public int getPoints() {
+        return points;
+    }
+
+    public void setPoints(int points) {
+        this.points = points;
     }
 }

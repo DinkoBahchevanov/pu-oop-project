@@ -3,6 +3,7 @@ package com.company.heroes;
 import com.company.tiles.Tile;
 
 import java.awt.*;
+import java.util.Random;
 
 public abstract class Hero extends Tile {
 
@@ -11,7 +12,7 @@ public abstract class Hero extends Tile {
     private String belongsTo;
 
     public abstract void render(Graphics g, int x, int y);
-    public abstract String getType();
+
     public abstract void showPossibleMoves(Tile[][] board, Graphics g, int currentRowOfHero, int currentColOfHero);
 
     public int getCurrentRow() {
@@ -34,6 +35,8 @@ public abstract class Hero extends Tile {
 
     public abstract boolean isAttackPossible(Tile[][] board, int wantedRow, int wantedCol);
 
+    public abstract String getType();
+
     public abstract int attack(Tile[][] board, int row, int col);
 
     public String belongsTo() {
@@ -54,4 +57,12 @@ public abstract class Hero extends Tile {
 
     public abstract void setArmor(int armor);
 
+    public int heal() {
+        Random random = new Random();
+
+        int heal = random.nextInt(6) + 1;
+
+        setHealth(getHealth() + heal);
+        return heal;
+    }
 }

@@ -9,6 +9,7 @@ import com.company.tiles.BattleFieldTile;
 import com.company.tiles.DarkGreyTile;
 import com.company.tiles.LightGreyTile;
 import com.company.tiles.Tile;
+import com.company.winFrame.WinFrame;
 
 import javax.swing.*;
 import java.awt.*;
@@ -16,6 +17,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Random;
 
@@ -25,13 +27,16 @@ public class Board extends JFrame implements MouseListener {
 
 
     private Tile[][] board;
+
     private boolean playerATurn;
     private boolean playerBTurn;
     private boolean stillPlacingFigures;
     private boolean hasPlacedChoosingSection = false;
     private boolean hasPlacedInnerGameChoiceSection = false;
+    private boolean playerAWon;
     private boolean gameHasWinner;
 
+    private int countOfRounds;
     //attack/move/heal
     private String innerGameChoice;
 
@@ -49,19 +54,30 @@ public class Board extends JFrame implements MouseListener {
     private Hero chosenHeroToPlace;
     private Hero chosenHeroToPlayWith;
 
+    private ArrayList<Hero> playerADeadHeroes;
+    private ArrayList<Hero> playerBDeadHeroes;
+
+
     public Board() {
         this.setVisible(true);
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
         this.setSize(new Dimension(1500, 1030));
 
         board = new Tile[7][9];
+
         playerATurn = true;
         playerBTurn = false;
         stillPlacingFigures = true;
+        playerAWon = false;
         gameHasWinner = false;
 
-        setBoardTiles();
+        countOfRounds = 0;
 
+        playerADeadHeroes = new ArrayList<>();
+        playerBDeadHeroes = new ArrayList<>();
+
+        //setting the tiles of board
+        setBoardTiles();
         // setting the barriers on the battlefield
         setBarriers();
 
@@ -75,15 +91,15 @@ public class Board extends JFrame implements MouseListener {
                     if (i < 2 || i > 4) {
                         if (i % 2 == 0) {
                             if (j % 2 == 0) {
-                                board[i][j] = new LightGreyTile(new Color(121, 121, 121), j * 100, i * 100 + 30);
-                            } else board[i][j] = new DarkGreyTile(new Color(75, 75, 75), j * 100, i * 100 + 30);
+                                board[i][j] = new LightGreyTile(new Color(191, 191, 191), j * 100, i * 100 + 30);
+                            } else board[i][j] = new DarkGreyTile(new Color(110, 110, 109), j * 100, i * 100 + 30);
                         } else {
                             if (j % 2 == 0) {
-                                board[i][j] = new DarkGreyTile(new Color(75, 75, 75), j * 100, i * 100 + 30);
-                            } else board[i][j] = new LightGreyTile(new Color(121, 121, 121), j * 100, i * 100 + 30);
+                                board[i][j] = new DarkGreyTile(new Color(110, 110, 109), j * 100, i * 100 + 30);
+                            } else board[i][j] = new LightGreyTile(new Color(191, 191, 191), j * 100, i * 100 + 30);
                         }
                     } else {
-                        board[i][j] = new BattleFieldTile(new Color(180, 180, 180), j * 100, i * 100 + 30);
+                        board[i][j] = new BattleFieldTile(new Color(255, 167, 167), j * 100, i * 100 + 30);
                     }
                 }
             }
@@ -125,9 +141,8 @@ public class Board extends JFrame implements MouseListener {
 
         int row = (e.getY() - 30) / 100;
         int col = e.getX() / 100;
-        ;
 
-//        setting the figures and choice window
+//      setting the figures and choice window
         if (stillPlacingFigures) {
             if (!hasPlacedChoosingSection) {
                 placeFigureChoice(getGraphics());
@@ -140,7 +155,6 @@ public class Board extends JFrame implements MouseListener {
             return;
         }
 
-
         if (!hasPlacedInnerGameChoiceSection) {
             drawPlayingGameWindow(getGraphics());
             playerATurn = true;
@@ -149,58 +163,135 @@ public class Board extends JFrame implements MouseListener {
         }
 
         if (e.getX() <= 900 && e.getY() <= 730) {
+            if (board[row][col] instanceof Hero) {
+                cleanFigureStats(getGraphics());
+                showHeroStats(getGraphics(), row, col);
+            } else cleanFigureStats(getGraphics());
+
             if (chosenHeroToPlayWith == null) {
                 //switching the button choice move/attack/heal
-                switch (innerGameChoice) {
-                    case MOVE:
-                        //checking the order
-                        if (board[row][col] instanceof Hero) {
-                            Hero currentHero = (Hero) board[row][col];
-                            if ((playerATurn && currentHero.belongsTo().equals(BELONGS_TO_PLAYER_A))
-                                    || (playerBTurn && currentHero.belongsTo().equals(BELONGS_TO_PLAYER_B))) {
-                                chosenHeroToPlayWith = (Hero) board[row][col];
-                                //showing the possible moves
-                                chosenHeroToPlayWith.showPossibleMoves(board, getGraphics(), row, col);
+                if (innerGameChoice != null) {
+                    switch (innerGameChoice) {
+                        case MOVE:
+                            //checking the order
+                            if (board[row][col] instanceof Hero) {
+                                Hero currentHero = (Hero) board[row][col];
+                                if ((playerATurn && currentHero.belongsTo().equals(BELONGS_TO_PLAYER_A))
+                                        || (playerBTurn && currentHero.belongsTo().equals(BELONGS_TO_PLAYER_B))) {
+
+                                    chosenHeroToPlayWith = (Hero) board[row][col];
+                                    //showing the possible moves
+                                    chosenHeroToPlayWith.showPossibleMoves(board, getGraphics(), row, col);
+
+                                    chosenHeroToPlayWith.setCurrentRow(row);
+                                    chosenHeroToPlayWith.setCurrentCol(col);
+
+                                } else chosenHeroToPlace = null;
+                            }
+                            break;
+                        case ATTACK:
+                            chosenHeroToPlayWith = (Hero) board[row][col];
+
+                            if ((playerATurn && chosenHeroToPlayWith.belongsTo().equals(BELONGS_TO_PLAYER_A))
+                                    || (playerBTurn && chosenHeroToPlayWith.belongsTo().equals(BELONGS_TO_PLAYER_B))) {
+
                                 chosenHeroToPlayWith.setCurrentRow(row);
                                 chosenHeroToPlayWith.setCurrentCol(col);
-                            } else chosenHeroToPlace = null;
-                        }
-                        break;
-                    case ATTACK:
-                        Hero currentHero = (Hero) board[row][col];
+                            } else chosenHeroToPlayWith = null;
 
-                        if ((playerATurn && currentHero.belongsTo().equals(BELONGS_TO_PLAYER_A))
-                                || (playerBTurn && currentHero.belongsTo().equals(BELONGS_TO_PLAYER_B))) {
-                            chosenHeroToPlayWith = (Hero) board[row][col];
-                            chosenHeroToPlayWith.setCurrentRow(row);
-                            chosenHeroToPlayWith.setCurrentCol(col);
-                        } else chosenHeroToPlayWith = null;
-
-                        break;
-                    case HEAL:
-
-                        break;
+                            break;
+                        case HEAL:
+                            cleanFigureStats(getGraphics());
+                            healFigure(getGraphics(), row, col);
+                            countOfRounds++;
+                            break;
+                    }
                 }
             } else {
+                cleanFigureStats(getGraphics());
                 switch (innerGameChoice) {
                     case MOVE:
                         moveTheFigure(row, col);
                         break;
                     case ATTACK:
-                        attackFigure(getGraphics(), row, col);
-                        break;
-                    case HEAL:
+                        if (board[row][col] instanceof BattleFieldTile
+                                && ((BattleFieldTile) (board[row][col])).isBarrier()) {
 
+                            board[row][col]
+                                    = new BattleFieldTile(new Color(184, 182, 182), col * 100, row * 100 + 30);
+                            changeTurnOfPlayer();
+                            drawLabelForPlayerTurn(getGraphics());
+                            setBoardTiles();
+                            visualizeComponents(getGraphics());
+                            countOfRounds++;
+                            return;
+                        }
+                        attackFigure(getGraphics(), row, col);
                         break;
                 }
             }
         } else {
+            cleanFigureStats(getGraphics());
             chosenHeroToPlayWith = null;
             visualizeComponents(getGraphics());
+            cleanFigureStats(getGraphics());
         }
     }
 
+    private void cleanFigureStats(Graphics g) {
+        g.setColor(getBackground());
+        g.drawRect(975, 380, 300, 200);
+        g.fillRect(975, 380, 300, 200);
+    }
+
+    private void showHeroStats(Graphics g, int row, int col) {
+        Hero currentHero = (Hero) board[row][col];
+
+        g.setColor(new Color(99, 0, 196));
+        g.setFont(new Font("Serif", Font.PLAIN, 30));
+
+        g.drawString("Hero type: " + currentHero.getType(), 945 + 30, 420);
+        g.drawString("Hero health: " + currentHero.getHealth(), 945 + 30, 450);
+        g.drawString("Hero attack: " + currentHero.getAttack(), 945 + 30, 480);
+    }
+
+    private void healFigure(Graphics g, int row, int col) {
+        Hero chosenHero = (Hero) board[row][col];
+        chosenHero.heal();
+
+        Random random = new Random();
+        int dice = random.nextInt(6) + 1;
+
+        if (dice % 2 == 0) {
+            changeTurnOfPlayer();
+            drawLabelForPlayerTurn(g);
+            return;
+        } else {
+            //drawing message if dice is odd
+            g.setColor(new Color(13, 172, 159));
+            g.setFont(new Font("Serif", Font.PLAIN, 50));
+
+            if (playerATurn) {
+                g.drawString("Player A on turn again!", 935 + 27, 430);
+            } else g.drawString("Player B on turn again!", 935 + 27, 430);
+        }
+
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        //cleaning the text messages
+        g.setColor(getBackground());
+        g.drawRect(935, 370, 550, 400);
+        g.fillRect(935, 370, 550, 400);
+    }
+
     private void attackFigure(Graphics g, int row, int col) {
+        if (!(board[row][col] instanceof Hero)) {
+            return;
+        }
         Hero chosenHeroToAttack = (Hero) board[row][col];
 
         if ((chosenHeroToAttack.belongsTo().equals(BELONGS_TO_PLAYER_A) && playerATurn)
@@ -213,21 +304,33 @@ public class Board extends JFrame implements MouseListener {
 
             g.setColor(new Color(246, 0, 0));
             g.setFont(new Font("Serif", Font.PLAIN, 50));
-            int damage = chosenHeroToAttack.attack(board, row, col);
+
+            //current attack
+            int damage = chosenHeroToPlayWith.attack(board, row, col);
+
             if (playerATurn) {
                 g.drawString("Player A attacked " + ((Hero) board[row][col]).getType().toLowerCase(), 950 + 27, 430);
-//                Thread.sleep(500);
+                playerA.setPoints(playerA.getPoints() + damage);
             } else {
                 g.drawString("Player B attacked " + ((Hero) board[row][col]).getType().toLowerCase(), 950 + 27, 430);
+                playerB.setPoints(playerB.getPoints() + damage);
             }
-            g.drawString(String.format("with %d damage", damage),950 + 27, 480);
+            g.drawString(String.format("with %d damage", damage), 950 + 27, 480);
 
+            //removing hero from player collection if herHealth <= 0
+            if (chosenHeroToAttack.getHealth() <= 0) {
+                if (playerATurn) {
+                    playerBDeadHeroes.add(chosenHeroToAttack);
+                } else {
+                    playerADeadHeroes.add(chosenHeroToAttack);
+                }
+            }
+            countOfRounds++;
+            board[row][col] = null;
 
             changeTurnOfPlayer();
-            drawLabelForChoice(getGraphics());
-            if (chosenHeroToAttack.getHealth() <= 0) {
-                board[row][col] = null;
-            }
+            drawLabelForPlayerTurn(getGraphics());
+
             chosenHeroToPlayWith = null;
             setBoardTiles();
             visualizeComponents(g);
@@ -238,21 +341,132 @@ public class Board extends JFrame implements MouseListener {
                 e.printStackTrace();
             }
             g.setColor(getBackground());
-            g.drawRect(950, 370, 550,400);
-            g.fillRect(950, 370, 550,400);
+            g.drawRect(950, 370, 550, 400);
+            g.fillRect(950, 370, 550, 400);
+
+            gameHasWinner = checkIfGameEnded();
+            if (gameHasWinner) {
+                g.setFont(new Font("Serif", Font.PLAIN, 30));
+                g.setColor(new Color(187, 4, 182));
+                if (playerAWon) {
+                    g.drawString("Player A WON!", 1055, 500);
+                } else g.drawString("Player B WON!", 1055, 500);
+
+
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                drawEndStats(g);
+                endGame(g);
+                return;
+            }
+            System.out.println(playerB.getArmy().size());
         } else {
             JOptionPane.showMessageDialog(this, "Not Possible attack!");
             chosenHeroToPlayWith = null;
         }
     }
 
+    private void drawEndStats(Graphics g) {
+        g.setFont(new Font("Serif", Font.PLAIN, 20));
+        g.setColor(new Color(0, 177, 199));
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("Player A dead figures: ");
+        for ( int i = 0; i < playerADeadHeroes.size(); i++ ) {
+            sb.append(playerADeadHeroes.get(i).getClass().getSimpleName()).append(" ");
+        }
+
+        g.drawString(sb.toString(), 930, 600);
+
+        sb = new StringBuilder();
+
+        sb.append("Player B dead figures: ");
+        for ( int i = 0; i < playerBDeadHeroes.size(); i++ ) {
+            sb.append(playerBDeadHeroes.get(i).getClass().getSimpleName()).append(" ");
+        }
+        g.drawString(sb.toString(), 930, 650);
+
+        g.drawString("Rounds: " + countOfRounds, 930, 700);
+
+//        JProgressBar progressBar = new JProgressBar();
+//        progressBar.setValue(0);
+//        progressBar.setStringPainted(true);
+//
+//        progressBar.setBounds(955, 750, 200, 100);
+//        progressBar.setVisible(true);
+//        this.add(progressBar);
+//        for ( int i = 0; i < 100; i += 10 ) {
+//            progressBar.setValue(i + 10);
+//
+//            try {
+//                Thread.sleep(500);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+//        }
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void endGame(Graphics g) {
+        try {
+            Thread.sleep(1500);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+
+        setVisible(false);
+        dispose();
+
+        new WinFrame();
+    }
+
+    private boolean checkIfGameEnded() {
+        boolean playerADoesNotHaveHeroes = true;
+        if (playerATurn) {
+            for ( int i = 0; i < 7; i++ ) {
+                for ( int j = 0; j < 9; j++ ) {
+                    if ((board[i][j] instanceof Hero) && (((Hero) board[i][j]).belongsTo().equals(BELONGS_TO_PLAYER_A))) {
+                        playerADoesNotHaveHeroes = false;
+                        break;
+                    }
+                }
+            }
+        }
+        if (playerADoesNotHaveHeroes && playerATurn) {
+            playerAWon = false;
+            return true;
+        }
+        boolean playerBDoesNotHaveHeroes = true;
+        if (!playerATurn) {
+            for ( int i = 0; i < 7; i++ ) {
+                for ( int j = 0; j < 9; j++ ) {
+                    if ((board[i][j] instanceof Hero) && (((Hero) board[i][j]).belongsTo().equals(BELONGS_TO_PLAYER_B))) {
+                        playerBDoesNotHaveHeroes = false;
+                        break;
+                    }
+                }
+            }
+        }
+        if (playerBDoesNotHaveHeroes && !playerATurn) {
+            playerAWon = true;
+            return true;
+        }
+        return false;
+    }
+
     private void moveTheFigure(int row, int col) {
         if (board[row][col] instanceof Hero) {
-            if ((((Hero) chosenHeroToPlayWith).belongsTo()).equals(((Hero) board[row][col]).belongsTo())) {
-                chosenHeroToPlayWith = null;
-                visualizeComponents(getGraphics());
-                return;
-            }
+            chosenHeroToPlayWith = null;
+            visualizeComponents(getGraphics());
+            return;
         }
         if (chosenHeroToPlayWith.isMovePossible(board, row, col)) {
             //draw the heroes over the board in order to hide the showed possible moves
@@ -271,7 +485,8 @@ public class Board extends JFrame implements MouseListener {
 
             //setting playerATurn or playerBTurn true
             changeTurnOfPlayer();
-            drawLabelForChoice(getGraphics());
+            drawLabelForPlayerTurn(getGraphics());
+            countOfRounds++;
         } else {
             chosenHeroToPlayWith = null;
             visualizeComponents(getGraphics());
@@ -297,7 +512,7 @@ public class Board extends JFrame implements MouseListener {
         g.drawRect(1005, 104, 290, 191);
         g.fillRect(1005, 104, 290, 191);
 
-        drawLabelForChoice(g);
+        drawLabelForPlayerTurn(g);
 
         drawButtonsForPlaying(g);
         hasPlacedInnerGameChoiceSection = true;
@@ -350,6 +565,7 @@ public class Board extends JFrame implements MouseListener {
                 //lowering the remaining heroes of that type that playerA can put
                 playerA.getHeroesForPlacing().put(chosenHeroToPlace.getType(),
                         playerA.getHeroesForPlacing().get(chosenHeroToPlace.getType()) - 1);
+                ((Hero) board[row][col]).setBelongsTo(BELONGS_TO_PLAYER_A);
                 playerATurn = false;
                 playerBTurn = true;
             } else System.out.printf("No more heroes of %s type%n", chosenHeroToPlace.getType());
@@ -367,6 +583,7 @@ public class Board extends JFrame implements MouseListener {
                 playerB.getHeroesForPlacing().put(chosenHeroToPlace.getType(),
                         playerB.getHeroesForPlacing().get(chosenHeroToPlace.getType()) - 1);
 
+                ((Hero) board[row][col]).setBelongsTo(BELONGS_TO_PLAYER_B);
                 playerATurn = true;
                 playerBTurn = false;
 
@@ -378,7 +595,7 @@ public class Board extends JFrame implements MouseListener {
         //checking if in the both players there are any heroes still not placed
         checkIfThereAreStillHeroesToPlace(g);
         if (stillPlacingFigures) {
-            drawLabelForChoice(g);
+            drawLabelForPlayerTurn(g);
         }
         chosenHeroToPlace = null;
     }
@@ -421,13 +638,13 @@ public class Board extends JFrame implements MouseListener {
     private void placeFigureChoice(Graphics g) {
         drawRectForPlaceFigureChoice(g);
 
-        drawLabelForChoice(g);
+        drawLabelForPlayerTurn(g);
 
         drawChoices(g);
         hasPlacedChoosingSection = true;
     }
 
-    private void drawLabelForChoice(Graphics g) {
+    private void drawLabelForPlayerTurn(Graphics g) {
         g.setColor(this.getBackground());
         g.drawRect(1050, 50, 177, 38);
         g.fillRect(1050, 50, 177, 38);
@@ -447,7 +664,7 @@ public class Board extends JFrame implements MouseListener {
     private void drawChoices(Graphics g) {
         //drawing knightButton
         knightButton = new JButton("K");
-        knightButton.setBackground(new Color(250, 58, 113));
+        knightButton.setBackground(new Color(0, 100, 255));
         knightButton.setBounds(1015, 130, 80, 80);
         knightButton.setFont(new Font("Arial", Font.PLAIN, 30));
         knightButton.setVisible(true);

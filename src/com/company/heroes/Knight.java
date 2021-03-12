@@ -14,12 +14,12 @@ public class Knight extends Hero {
 
     private final int ATTACK = 8;
     private int ARMOR = 3;
-    private int health = 15;
+    private int health = 1;
     private final int MOVABLE_ATACKABLE_TILES = 1;
 
     @Override
     public void render(Graphics g, int x, int y) {
-        g.setColor(new Color(248, 53, 96));
+        g.setColor(new Color(0, 100, 255));
         g.setFont(new Font("Serif", Font.PLAIN, 30));
         g.drawString("K", x + 40, y + 55);
     }
@@ -79,6 +79,7 @@ public class Knight extends Hero {
         if (wantedCol != getCurrentCol() && wantedRow != getCurrentRow()) {
             return false;
         }
+
         if ((wantedRow != getCurrentRow() && Math.abs(wantedRow - getCurrentRow()) > MOVABLE_ATACKABLE_TILES)
                 || wantedCol != getCurrentCol() && Math.abs(wantedCol - getCurrentCol()) > MOVABLE_ATACKABLE_TILES) {
             return false;
@@ -109,7 +110,7 @@ public class Knight extends Hero {
     }
 
     private void drawPossibleMoveCircle(Graphics g, int x, int y) {
-        g.setColor(new Color(253, 58, 98));
+        g.setColor(new Color(0, 100, 255));
         g.drawOval(x + 40, y + 35, 20, 20);
         g.fillOval(x + 40, y + 35, 20, 20);
     }
