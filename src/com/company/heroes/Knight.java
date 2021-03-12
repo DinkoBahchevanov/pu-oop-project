@@ -14,7 +14,7 @@ public class Knight extends Hero {
 
     private final int ATTACK = 8;
     private int ARMOR = 3;
-    private int health = 1;
+    private int health = 15;
     private final int MOVABLE_ATACKABLE_TILES = 1;
 
     @Override

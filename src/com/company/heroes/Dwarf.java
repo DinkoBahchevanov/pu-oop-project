@@ -14,13 +14,13 @@ public class Dwarf extends Hero {
 
     private final int ATTACK = 6;
     private int ARMOR = 2;
-    private int health = 1;
+    private int health = 12;
     private final int MOVABLE_TILES = 2;
 
     @Override
     public void render(Graphics g, int x, int y) {
         g.setFont(new Font("Serif", Font.PLAIN, 30));
-        g.setColor(new Color(110, 42, 255));
+        g.setColor(new Color(152, 104, 255));
         g.drawString("Dw", x + 27, y + 55);
     }
 

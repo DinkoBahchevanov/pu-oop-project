@@ -9,6 +9,4 @@ public class Constants {
     public static final String ATTACK = "ATTACK";
     public static final String BELONGS_TO_PLAYER_A = "PLAYERA";
     public static final String BELONGS_TO_PLAYER_B = "PLAYERB";
-    public static final String PlayerAWon = "Congrats!! Player A won the GAME!";
-    public static final String PlayerBWon = "Congrats!! Player B won the GAME!";
 }

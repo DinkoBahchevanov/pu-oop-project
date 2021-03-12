@@ -23,11 +23,6 @@ public class Player {
         points = 0;
 
         setHeroes();
-        setArmy();
-    }
-
-    private void setArmy() {
-
     }
 
     private void setHeroes() {

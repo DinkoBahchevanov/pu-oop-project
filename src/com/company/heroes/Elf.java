@@ -14,8 +14,7 @@ public class Elf extends Hero {
 
     private final int ATTACK = 5;
     private int armor = 1;
-    private int health = 1;
-    private final int MOVABLE_TILES = 3;
+    private int health = 10;
 
     @Override
     public void render(Graphics g, int x, int y) {
